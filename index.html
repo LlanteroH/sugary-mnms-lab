@@ -1,474 +1,481 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Sugary M&Ms — Interactive Lab (No-CDN)</title>
-<style>
-  :root{
-    --ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--card:#fff;--bg0:#f8fafc;--bg1:#f1f5f9;
-    --green:#10b981;--green-50:#ecfdf5;--amber:#f59e0b;
-  }
-  html,body{height:100%}
-  body{margin:0;background:linear-gradient(var(--bg0),var(--bg1));
-       font:14px/1.4 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--ink)}
-  .container{max-width:1200px;margin:0 auto;padding:16px}
-  h1{font-size:28px;line-height:1.2;margin:0 0 8px 0;font-weight:800}
-  .row{display:grid;gap:16px}
-  @media(min-width:980px){.row-12{grid-template-columns:3fr 9fr}.row-2{grid-template-columns:1fr 1fr}.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-  .btn{background:#0f172a;color:#fff;border:none;border-radius:12px;padding:8px 12px;cursor:pointer}
-  .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#f1f5f9;border-radius:12px;padding:6px 10px;cursor:grab;user-select:none}
-  .tiny{font-size:12px;color:var(--muted)}
-  .list{display:grid;gap:8px}
-  .flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .grid3{display:grid;gap:12px}
-  .notice{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#0f172a;color:#fff;padding:8px 12px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);display:none}
-  .circle{width:32px;height:32px;border-radius:999px;border:1px solid #cbd5e1;display:inline-block;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:grab}
-  .board{background:#f8fafc}
-  .slot{border:1px dashed var(--line);border-radius:12px;padding:8px;min-height:196px}
-  .title{font-weight:700;margin:0 0 6px 0}
-  .steps li{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;gap:8px;align-items:start;background:#fff}
-  .steps .n{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;font-size:12px;font-weight:700;background:#e2e8f0;color:#334155;margin-top:2px}
-  .steps .ok{background:var(--green);color:#fff}
-  .steps .done{background:var(--green-50);border-color:#34d399}
-  textarea{width:100%;min-height:84px;padding:8px;border-radius:12px;border:1px solid var(--line);background:#f8fafc;resize:vertical}
-  .badge{font-size:11px;padding:2px 6px;border-radius:8px}
-  .badge-amber{background:#fde68a;color:#92400e;border:1px solid var(--amber)}
-  .cupVis,.plateVis{display:grid;place-items:center;border:1px solid var(--line);border-radius:12px;background:#fff}
-  .cupVis{height:120px}
-  .plateVis{height:256px}
-  .attached{display:inline-flex;align-items:center;gap:6px;margin-top:6px}
-  .trayZone{border:1px dashed #cbd5e1;border-radius:12px;padding:6px;background:#fff}
-  .ghost{opacity:.6}
-</style>
-</head>
-<body>
-  <div class="container">
-    <header class="row" style="grid-template-columns:1fr auto;align-items:flex-start;gap:12px">
-      <div>
-        <h1>Sugary M&Ms — Interactive Lab</h1>
-        <p class="tiny">Drag & drop to follow the procedure, then observe how dye from an M&amp;M spreads in different sugar concentrations.</p>
-      </div>
-      <div class="flex">
-        <label class="tiny">Time speed</label>
-        <input id="speed" type="range" min="1" max="30" step="1" value="10" style="width:160px">
-        <span id="speedLabel" class="tiny" style="width:28px;text-align:right">10×</span>
-        <button id="resetAll" class="btn">Reset</button>
-      </div>
-    </header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sugary M&Ms — Interactive Lab (bugfix build)</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gradient-to-b from-slate-50 to-slate-100 text-slate-800">
+    <div id="root"></div>
 
-    <ol id="steps" class="steps grid3" style="margin:16px 0"></ol>
+    <!-- App code -->
+    <script type="text/babel" data-presets="env,react">
+      const { useEffect, useMemo, useRef, useState } = React;
 
-    <section class="row row-12" style="margin-top:16px">
-      <div>
-        <div class="card">
-          <h3 class="title">Tools</h3>
-          <p class="tiny">Drag these onto cups/plates.</p>
-          <div class="flex">
-            <div class="pill" draggable="true" id="tool-water" title="Drag to add ¼ cup water to a cup">Water pitcher (¼ cup)</div>
-            <div class="pill" draggable="true" id="tool-sugar" title="Drag to add 1 tsp sugar to a cup">Sugar spoon (1 tsp)</div>
-          </div>
-          <div style="margin-top:10px">
-            <h4 class="tiny" style="font-size:13px;margin:0 0 6px 0">M&amp;Ms</h4>
-            <div id="mmTray" class="flex"></div>
-          </div>
-        </div>
+      function SugaryMAndMsLab() {
+        const LABELS = [
+          { id: "no", text: "No sugar", sugarTeaspoons: 0 },
+          { id: "1tsp", text: "1 tsp sugar", sugarTeaspoons: 1 },
+          { id: "3tsp", text: "3 tsp sugar", sugarTeaspoons: 3 },
+        ];
 
-        <div class="card" style="margin-top:16px">
-          <h3 class="title">Labels</h3>
-          <p class="tiny">Drag onto cups and plates, or drag an attached label back into the tray to reassign.</p>
-          <div id="labelTray" class="list trayZone"></div>
-        </div>
+        const MM_COLORS = [
+          { id: "red", name: "Red", rgb: [220, 38, 38] },
+          { id: "blue", name: "Blue", rgb: [37, 99, 235] },
+          { id: "green", name: "Green", rgb: [16, 185, 129] },
+          { id: "yellow", name: "Yellow", rgb: [234, 179, 8] },
+          { id: "orange", name: "Orange", rgb: [249, 115, 22] },
+          { id: "brown", name: "Brown", rgb: [87, 55, 40] },
+        ];
 
-        <div class="card" style="margin-top:16px">
-          <h3 class="title">Student Notebook</h3>
-          <div class="list">
-            <div>
-              <label class="tiny">Prediction (before adding M&amp;Ms)</label>
-              <textarea id="pred"></textarea>
+        const [cups, setCups] = useState(
+          Array.from({ length: 3 }, (_, i) => ({
+            id: \`cup-\${i + 1}\`,
+            labelId: null,
+            water: 0,
+            sugar: 0,
+            dissolved: false,
+          }))
+        );
+
+        const [plates, setPlates] = useState(
+          Array.from({ length: 3 }, (_, i) => ({
+            id: \`plate-\${i + 1}\`,
+            labelId: null,
+            solutionWater: 0,
+            solutionSugar: 0,
+            mmColorId: null,
+            simTime: 0,
+            running: false,
+          }))
+        );
+
+        // Pool creates cup labels + plate labels to drag
+        const [labelPool] = useState(
+          LABELS.map((l) => ({ ...l, poolId: \`cup-\${l.id}\` })).concat(
+            LABELS.map((l) => ({ ...l, poolId: \`plate-\${l.id}\` }))
+          )
+        );
+
+        const [message, setMessage] = useState("");
+        const [speed, setSpeed] = useState(10);
+        const [notes, setNotes] = useState({ predictions: "", observations: "", explanations: "" });
+
+        const getLabel = (labelId) => LABELS.find((l) => l.id === labelId) || null;
+        const labelText = (labelId) => (getLabel(labelId)?.text || "—");
+
+        function postMessage(text) {
+          setMessage(text);
+          if (!text) return;
+          clearTimeout(postMessage._t);
+          postMessage._t = setTimeout(() => setMessage(""), 3000);
+        }
+
+        function onDragStart(e, payload) {
+          e.dataTransfer.setData("application/json", JSON.stringify(payload));
+        }
+        function readPayload(e) {
+          try { return JSON.parse(e.dataTransfer.getData("application/json")); }
+          catch { return null; }
+        }
+
+        // Label drops
+        function handleLabelDropOnCup(cupId, e) {
+          e.preventDefault();
+          const p = readPayload(e);
+          if (!p || p.type !== "label") return;
+          setCups((prev) => prev.map((c) => (c.id === cupId ? { ...c, labelId: p.labelId } : c)));
+        }
+        function handleLabelDropOnPlate(plateId, e) {
+          e.preventDefault();
+          const p = readPayload(e);
+          if (!p || p.type !== "label") return;
+          setPlates((prev) => prev.map((pl) => (pl.id === plateId ? { ...pl, labelId: p.labelId } : pl)));
+        }
+
+        // Water & sugar onto cups
+        function handleCupDrop(cupId, e) {
+          e.preventDefault();
+          const p = readPayload(e);
+          if (!p) return;
+          setCups((prev) =>
+            prev.map((c) => {
+              if (c.id !== cupId) return c;
+              if (p.type === "water") {
+                // clamp TOTAL to 1/4 cup
+                const nextWater = Math.min(0.25, parseFloat((c.water + 0.25).toFixed(2)));
+                return { ...c, water: nextWater };
+              }
+              if (p.type === "sugar") {
+                return { ...c, sugar: c.sugar + p.amount, dissolved: false };
+              }
+              return c;
+            })
+          );
+        }
+
+        // Stir
+        function stirCup(cupId) {
+          setCups((prev) => prev.map((c) => (c.id === cupId ? { ...c, dissolved: false } : c)));
+          const c = cups.find((x) => x.id === cupId);
+          if (!c) return;
+          if (c.water <= 0) return postMessage("Add water first (¼ cup).");
+          if (c.sugar <= 0) return postMessage("No sugar to dissolve in this cup.");
+          postMessage("Stirring… dissolving sugar");
+          setTimeout(() => {
+            setCups((prev) => prev.map((x) => (x.id === cupId ? { ...x, dissolved: true } : x)));
+            postMessage("Sugar dissolved!");
+          }, Math.max(600, 800 + c.sugar * 300));
+        }
+
+        // Pour cup onto plate
+        function onCupDragStart(e, cupId) { onDragStart(e, { type: "cup", cupId }); }
+        function onPlateDrop(plateId, e) {
+          e.preventDefault();
+          const p = readPayload(e);
+          if (!p || p.type !== "cup") return;
+          const cup = cups.find((c) => c.id === p.cupId);
+          if (!cup) return;
+          if (!cup.labelId) return postMessage("Label the cup before pouring.");
+          const plate = plates.find((pl) => pl.id === plateId);
+          if (!plate) return;
+          if (!plate.labelId) return postMessage("Label the plate before pouring.");
+          if (plate.labelId !== cup.labelId) return postMessage("Pour into the matching labeled plate.");
+          if (cup.water <= 0) return postMessage("This cup is empty — add water.");
+          if (cup.sugar > 0 && !cup.dissolved) return postMessage("Stir until sugar dissolves before pouring.");
+
+          setPlates((prev) =>
+            prev.map((pl) =>
+              pl.id === plateId
+                ? {
+                    ...pl,
+                    solutionWater: parseFloat((pl.solutionWater + cup.water).toFixed(2)),
+                    solutionSugar: pl.solutionSugar + cup.sugar,
+                  }
+                : pl
+            )
+          );
+          setCups((prev) => prev.map((c) => (c.id === cup.id ? { ...c, water: 0, sugar: 0, dissolved: false } : c)));
+          postMessage("Poured into plate.");
+        }
+
+        // M&M onto plate + diffusion loop
+        function onMMDrop(plateId, e) {
+          e.preventDefault();
+          const p = readPayload(e);
+          if (!p || p.type !== "mm") return;
+          const plate = plates.find((pl) => pl.id === plateId);
+          if (!plate) return;
+          if (plate.solutionWater <= 0) return postMessage("Pour the solution into this plate first.");
+          setPlates((prev) =>
+            prev.map((pl) => (pl.id === plateId ? { ...pl, mmColorId: p.mmColorId, running: true, simTime: 0 } : pl))
+          );
+        }
+        useEffect(() => {
+          const t = setInterval(() => {
+            setPlates((prev) =>
+              prev.map((pl) => (pl.running ? { ...pl, simTime: pl.simTime + 0.1 * speed } : pl))
+            );
+          }, 100);
+          return () => clearInterval(t);
+        }, [speed]);
+
+        function resetPlateSim(plateId) {
+          setPlates((prev) =>
+            prev.map((pl) => (pl.id === plateId ? { ...pl, mmColorId: null, simTime: 0, running: false } : pl))
+          );
+        }
+        function resetAll() {
+          setCups(Array.from({ length: 3 }, (_, i) => ({ id: \`cup-\${i + 1}\`, labelId: null, water: 0, sugar: 0, dissolved: false })));
+          setPlates(Array.from({ length: 3 }, (_, i) => ({ id: \`plate-\${i + 1}\`, labelId: null, solutionWater: 0, solutionSugar: 0, mmColorId: null, simTime: 0, running: false })));
+          setNotes({ predictions: "", observations: "", explanations: "" });
+          setSpeed(10);
+          postMessage("Reset the lab.");
+        }
+
+        const stepsStatus = useMemo(() => {
+          const labelsDone = cups.every((c) => c.labelId) && plates.every((p) => p.labelId);
+          const waterDone = cups.every((c) => c.water >= 0.25);
+          const sugarDone = LABELS.every((lab) => {
+            const cup = cups.find((c) => c.labelId === lab.id);
+            if (!cup) return false;
+            return cup.sugar === lab.sugarTeaspoons;
+          });
+          const dissolvedDone = cups.every((c) => (c.sugar > 0 ? c.dissolved : true));
+          const pouredDone = plates.every((p) => p.solutionWater >= 0.25);
+          const mmPlaced = plates.every((p) => p.mmColorId);
+          return { labelsDone, waterDone, sugarDone, dissolvedDone, pouredDone, mmPlaced };
+        }, [cups, plates]);
+
+        return (
+          <div className="w-full min-h-[100vh]">
+            <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8">
+              <header className="flex items-start justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold">Sugary M&amp;Ms — Interactive Lab</h1>
+                  <p className="text-sm md:text-base text-slate-600 mt-1">Drag and drop to follow the procedure, then observe how dye from an M&amp;M spreads in different sugar concentrations.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="text-sm">Time speed</label>
+                  <input type="range" min={1} max={30} step={1} value={speed} onChange={(e) => setSpeed(parseInt(e.target.value))} className="w-40" aria-label="Simulation speed" />
+                  <span className="text-sm w-10 text-right">{speed}×</span>
+                  <button onClick={resetAll} className="px-3 py-2 rounded-xl bg-slate-800 text-white text-sm hover:bg-slate-700">Reset</button>
+                </div>
+              </header>
+
+              <Steps status={stepsStatus} />
+
+              <section className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div className="lg:col-span-3">
+                  <ToolTray onDragStart={onDragStart} MM_COLORS={MM_COLORS} />
+                  <LabelTray labelPool={labelPool} onDragStart={onDragStart} />
+                  <NotesPanel notes={notes} setNotes={setNotes} />
+                </div>
+
+                <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <CupBoard
+                    cups={cups}
+                    onLabelDrop={handleLabelDropOnCup}
+                    onCupDrop={handleCupDrop}
+                    onCupDragStart={onCupDragStart}
+                    stirCup={stirCup}
+                    labelText={labelText}
+                  />
+                  <PlateBoard
+                    plates={plates}
+                    onLabelDrop={handleLabelDropOnPlate}
+                    onCupDropOnPlate={onPlateDrop}
+                    onMMDrop={onMMDrop}
+                    resetPlateSim={resetPlateSim}
+                    labelText={labelText}
+                    MM_COLORS={MM_COLORS}
+                  />
+                </div>
+              </section>
+
+              {message && <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-xl">{message}</div>}
+
+              <section className="mt-8">
+                <h3 className="font-semibold text-lg">Conceptual prompts</h3>
+                <ul className="list-disc pl-6 text-sm md:text-base mt-2 space-y-1 text-slate-700">
+                  <li>Compare how fast the color spreads on each plate. Which plate’s color reaches the edge first? Which last?</li>
+                  <li>Describe the sharpness of the color boundary on each plate. How does sugar concentration affect mixing?</li>
+                  <li>Explain using particle motion and concentration gradients why a higher sugar solution might slow spreading.</li>
+                  <li>Predict what would happen with even more sugar (e.g., 5 tsp). What about warm vs. cold water?</li>
+                </ul>
+              </section>
             </div>
-            <div>
-              <label class="tiny">Observations</label>
-              <textarea id="obs"></textarea>
-            </div>
-            <div>
-              <label class="tiny">Explanation (CER)</label>
-              <textarea id="exp"></textarea>
-            </div>
           </div>
-        </div>
-      </div>
-
-      <div class="row row-2">
-        <div class="card board">
-          <h3 class="title">Cups</h3>
-          <div id="cups" class="grid3"></div>
-        </div>
-        <div class="card board">
-          <h3 class="title">Plates</h3>
-          <div id="plates" class="grid3"></div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <div id="toast" class="notice"></div>
-
-<script>
-/* ----------------------------- State ----------------------------- */
-const LABELS = [
-  { id:"no",   text:"No sugar",   sugarTeaspoons:0 },
-  { id:"1tsp", text:"1 tsp sugar",sugarTeaspoons:1 },
-  { id:"3tsp", text:"3 tsp sugar",sugarTeaspoons:3 },
-];
-const MM = [
-  { id:"red", rgb:[220,38,38] }, { id:"blue", rgb:[37,99,235] }, { id:"green", rgb:[16,185,129] },
-  { id:"yellow", rgb:[234,179,8] }, { id:"orange", rgb:[249,115,22] }, { id:"brown", rgb:[87,55,40] },
-];
-
-let speed = 10;
-
-let cups = Array.from({length:3}, (_,i)=>({ id:`cup-${i+1}`, labelId:null, water:0, sugar:0, dissolved:false }));
-let plates = Array.from({length:3}, (_,i)=>({ id:`plate-${i+1}`, labelId:null, solutionWater:0, solutionSugar:0, mmColorId:null, simTime:0, running:false }));
-
-// six movable label chips (3 for cups, 3 for plates)
-let labelChips = [
-  { chipId:"no-cup",   labelId:"no",   text:"No sugar",     target:"cup",   location:{type:"tray"} },
-  { chipId:"1tsp-cup", labelId:"1tsp", text:"1 tsp sugar",  target:"cup",   location:{type:"tray"} },
-  { chipId:"3tsp-cup", labelId:"3tsp", text:"3 tsp sugar",  target:"cup",   location:{type:"tray"} },
-  { chipId:"no-plate",   labelId:"no",   text:"No sugar",   target:"plate", location:{type:"tray"} },
-  { chipId:"1tsp-plate", labelId:"1tsp", text:"1 tsp sugar",target:"plate", location:{type:"tray"} },
-  { chipId:"3tsp-plate", labelId:"3tsp", text:"3 tsp sugar",target:"plate", location:{type:"tray"} },
-];
-
-/* ----------------------------- Helpers ----------------------------- */
-const $ = sel => document.querySelector(sel);
-function el(tag, props={}, ...children){
-  const d = document.createElement(tag);
-  for(const [k,v] of Object.entries(props)){
-    if(k==="style" && typeof v==="object"){ Object.assign(d.style, v); }
-    else if(k.startsWith("on") && typeof v==="function"){ d.addEventListener(k.slice(2).toLowerCase(), v); }
-    else if(k==="dataset"){ Object.assign(d.dataset, v); }
-    else if(v!==false && v!=null){ d.setAttribute(k, v===true ? "" : v); }
-  }
-  for(const c of children){ d.append(c && c.nodeType ? c : document.createTextNode(c ?? "")); }
-  return d;
-}
-function toast(msg){
-  const t = $("#toast"); t.textContent = msg; t.style.display = "block";
-  clearTimeout(toast._t); toast._t = setTimeout(()=> t.style.display = "none", 2200);
-}
-function dataPayload(e){ try { return JSON.parse(e.dataTransfer.getData("application/json")); } catch { return null; } }
-function onDragStart(e, payload){
-  e.dataTransfer.setData("application/json", JSON.stringify(payload));
-  const g = document.createElement("div"); g.className="pill ghost"; g.style.position="fixed"; g.style.top="-1000px";
-  g.textContent = payload.previewText || "Drag"; document.body.appendChild(g); e.dataTransfer.setDragImage(g, 10, 10);
-  setTimeout(()=>document.body.removeChild(g),0);
-}
-const labelText = id => (LABELS.find(l=>l.id===id)||{}).text || "—";
-
-/* ----------------------------- Build UI ----------------------------- */
-function buildEverything(){
-  buildSteps();
-  buildTools();
-  buildBoards();
-}
-function buildSteps(){
-  const st = $("#steps");
-  const ok = (b)=> b ? "ok" : "";
-  const done = (b)=> b ? "done" : "";
-  const status = computeStatus();
-  st.innerHTML="";
-  const steps = [
-    {text:"Label 3 cups + 3 plates (No sugar, 1 tsp sugar, 3 tsp sugar)", ok:status.labelsDone},
-    {text:"Add ¼ cup water to each cup", ok:status.waterDone},
-    {text:"Add sugar to the 1-tsp and 3-tsp cups", ok:status.sugarDone},
-    {text:"Stir until sugar dissolves", ok:status.dissolvedDone},
-    {text:"Pour each cup into its matching plate", ok:status.pouredDone},
-    {text:"Add an M&M to each plate; watch and record observations", ok:status.mmPlaced},
-  ];
-  steps.forEach((s,i)=>{
-    const li = el("li",{class:`${s.ok?'done':''}`},
-      el("span",{class:`n ${ok(s.ok)}`}, String(i+1)), " ",
-      el("span",{}, s.text)
-    );
-    if(s.ok){ li.classList.add("done"); }
-    st.append(li);
-  });
-}
-function buildTools(){
-  // Tools drag sources
-  $("#tool-water").addEventListener("dragstart", e=> onDragStart(e,{type:"water", previewText:"¼ cup water"}));
-  $("#tool-sugar").addEventListener("dragstart", e=> onDragStart(e,{type:"sugar", amount:1, previewText:"+1 tsp sugar"}));
-  const mmTray = $("#mmTray"); mmTray.innerHTML="";
-  MM.forEach(m=>{
-    const dot = el("span",{class:"circle", draggable:true, ondragstart:(e)=>onDragStart(e,{type:"mm", mmColorId:m.id, previewText:`M&M`}),
-      style:{background:`rgb(${m.rgb[0]},${m.rgb[1]},${m.rgb[2]})`}});
-    mmTray.append(dot);
-  });
-
-  // Label tray (also a drop target to return labels)
-  const tray = $("#labelTray"); tray.innerHTML="";
-  tray.addEventListener("dragover", e=>e.preventDefault());
-  tray.addEventListener("drop", e=>{
-    const p = dataPayload(e); if(!p) return;
-    if(p.type==="labelChip"){
-      const chip = labelChips.find(c=>c.chipId===p.chipId); if(!chip) return;
-      if(chip.location.type==="cup"){
-        const cup = cups.find(x=>x.id===chip.location.id);
-        if(cup && cup.labelId===chip.labelId) cup.labelId=null;
-      } else if(chip.location.type==="plate"){
-        const plate = plates.find(x=>x.id===chip.location.id);
-        if(plate && plate.labelId===chip.labelId) plate.labelId=null;
+        );
       }
-      chip.location={type:"tray"};
-      buildEverything();
-    }
-  });
-  labelChips.filter(c=>c.location.type==="tray").forEach(ch=>{
-    tray.append(
-      el("div",{class:"pill",draggable:true,
-        ondragstart:(e)=>onDragStart(e,{type:"labelChip", chipId:ch.chipId, labelId:ch.labelId, target:ch.target, previewText:`${ch.text} (${ch.target})`})
-      }, ch.text," ",el("span",{class:"tiny"}, `(${ch.target})`))
-    );
-  });
 
-  // Speed + Reset
-  $("#speed").oninput = (e)=>{ speed = parseInt(e.target.value||"10",10); $("#speedLabel").textContent = `${speed}×`; };
-  $("#resetAll").onclick = ()=>{ resetAll(); };
-}
-function cupCard(c){
-  const head = el("div",{class:"flex",style:{justifyContent:"space-between"}},
-    el("span",{class:"tiny"}, c.id),
-    el("div",{class:"pill",draggable:true,title:"Drag this cup onto a matching plate to pour",
-      ondragstart:(e)=>onDragStart(e,{type:"cup", cupId:c.id, previewText:c.id})},"Drag to pour")
-  );
-  const labelLine = el("div",{}, el("strong",{},"Label:")," ", el("span",{}, labelText(c.labelId)));
-  const attachedWrap = el("div",{class:"attached"});
-  const attachedChip = labelChips.find(ch=>ch.location.type==="cup" && ch.location.id===c.id);
-  if(attachedChip){
-    attachedWrap.append(
-      el("div",{class:"pill",draggable:true,
-        ondragstart:(e)=>onDragStart(e,{type:"labelChip", chipId:attachedChip.chipId, labelId:attachedChip.labelId, target:"cup", previewText:attachedChip.text+" (cup)"})
-      }, attachedChip.text, " ", el("span",{class:"tiny"},"(cup)"))
-    );
-  } else {
-    attachedWrap.append(el("span",{class:"tiny",style:{color:"#94a3b8"}},"Drop a CUP label here"));
-  }
+      function Steps({ status }) {
+        const steps = [
+          { key: "labelsDone", text: "Label 3 cups + 3 plates (No sugar, 1 tsp sugar, 3 tsp sugar)" },
+          { key: "waterDone", text: "Add ¼ cup water to each cup" },
+          { key: "sugarDone", text: "Add sugar to the 1-tsp and 3-tsp cups" },
+          { key: "dissolvedDone", text: "Stir until sugar dissolves" },
+          { key: "pouredDone", text: "Pour each cup into its matching plate" },
+          { key: "mmPlaced", text: "Add an M&M to each plate; watch and record observations" },
+        ];
+        return (
+          <ol className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {steps.map((s, i) => (
+              <li key={s.key} className={\`flex items-start gap-2 p-3 rounded-xl border \${status[s.key] ? "border-emerald-400 bg-emerald-50" : "border-slate-200 bg-white"}\`}>
+                <span className={\`mt-1 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold \${status[s.key] ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-700"}\`}>{i + 1}</span>
+                <span className="text-sm md:text-base">{s.text}</span>
+              </li>
+            ))}
+          </ol>
+        );
+      }
 
-  const state = el("div",{},
-    el("div",{}, el("strong",{},"Water:")," ", el("span",{}, `${c.water.toFixed(2)} cup`)),
-    el("div",{}, el("strong",{},"Sugar:")," ", el("span",{}, `${c.sugar} tsp`)," ",
-      c.sugar>0?el("span",{class:"badge badge-amber"}, c.dissolved?"dissolved":"undissolved"):"")
-  );
-  const vis = el("div",{class:"cupVis"}); drawCupVis(vis,c);
-  const foot = el("div",{class:"flex"},
-    el("span",{class:"pill tiny"},"Drop: water / sugar / CUP label"),
-    el("button",{class:"btn",onclick:()=>stirCup(c.id)},"Stir")
-  );
+      function ToolTray({ onDragStart, MM_COLORS }) {
+        return (
+          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <h3 className="font-semibold">Tools</h3>
+            <p className="text-xs text-slate-500 mb-3">Drag these onto cups/plates.</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div draggable onDragStart={(e) => onDragStart(e, { type: "water" })} className="select-none cursor-grab active:cursor-grabbing px-3 py-2 rounded-xl bg-sky-100 border border-sky-300 text-sky-900 text-sm shadow-sm" title="Drag to add ¼ cup water to a cup">Water pitcher (¼ cup)</div>
+                <div draggable onDragStart={(e) => onDragStart(e, { type: "sugar", amount: 1 })} className="select-none cursor-grab active:cursor-grabbing px-3 py-2 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 text-sm shadow-sm" title="Drag to add 1 tsp sugar to a cup">Sugar spoon (1 tsp)</div>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium mb-2">M&amp;Ms</h4>
+                <div className="flex flex-wrap gap-2">
+                  {MM_COLORS.map((c) => (
+                    <button key={c.id} draggable onDragStart={(e) => onDragStart(e, { type: "mm", mmColorId: c.id })} className="w-8 h-8 rounded-full border border-slate-300 shadow-sm cursor-grab active:cursor-grabbing" style={{ backgroundColor: \`rgb(\${c.rgb[0]}, \${c.rgb[1]}, \${c.rgb[2]})\` }} title={\`Drag a \${c.name} M&M onto a plate\`} />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
 
-  const box = el("div",{class:"slot",
-    ondragover:(e)=>e.preventDefault(),
-    ondrop:(e)=>{
-      const p = dataPayload(e); if(!p) return;
-      if(p.type==="labelChip" && p.target==="cup"){ attachLabelChipToCup(p.chipId, c.id); return; }
-      if(p.type==="water"){ const w=Math.min(0.25, +(c.water+0.25).toFixed(2)); setCup(c.id,{water:w}); return; }
-      if(p.type==="sugar"){ setCup(c.id,{sugar:c.sugar+1, dissolved:false}); return; }
-    }
-  });
-  box.append(head,labelLine,attachedWrap,state,foot,vis);
-  return box;
-}
-function plateCard(p){
-  const head = el("div",{class:"flex",style:{justifyContent:"space-between"}},
-    el("span",{class:"tiny"}, p.id),
-    el("span",{class:"tiny pill"},"Drop: label / CUP / M&M")
-  );
-  const labelLine = el("div",{}, el("strong",{},"Label:")," ", el("span",{}, labelText(p.labelId)));
-  const attachedWrap = el("div",{class:"attached"});
-  const attachedChip = labelChips.find(ch=>ch.location.type==="plate" && ch.location.id===p.id);
-  if(attachedChip){
-    attachedWrap.append(
-      el("div",{class:"pill",draggable:true,
-        ondragstart:(e)=>onDragStart(e,{type:"labelChip", chipId:attachedChip.chipId, labelId:attachedChip.labelId, target:"plate", previewText:attachedChip.text+" (plate)"})
-      }, attachedChip.text, " ", el("span",{class:"tiny"},"(plate)"))
-    );
-  } else {
-    attachedWrap.append(el("span",{class:"tiny",style:{color:"#94a3b8"}},"Drop a PLATE label here"));
-  }
-  const state = el("div",{},
-    el("div",{}, el("strong",{},"Solution:")," ", el("span",{}, `${p.solutionWater.toFixed(2)} cup`)),
-    el("div",{}, el("strong",{},"Sugar:")," ", el("span",{}, `${p.solutionSugar} tsp`)),
-    el("div",{}, el("strong",{},"M&M:")," ", el("span",{}, p.mmColorId || "—"))
-  );
-  const vis = el("div",{class:"plateVis"}); drawPlateVis(vis,p);
-  const foot = el("div",{class:"flex"},
-    el("button",{class:"btn",style:{marginLeft:"auto"},onclick:()=>resetPlate(p.id)},"Reset plate")
-  );
+      function LabelTray({ labelPool, onDragStart }) {
+        return (
+          <div className="p-4 mt-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <h3 className="font-semibold">Labels</h3>
+            <p className="text-xs text-slate-500 mb-3">Drag onto cups and plates.</p>
+            <div className="grid grid-cols-1 gap-2">
+              {labelPool.map((l, idx) => (
+                <div key={\`\${l.poolId}-\${idx}\`} draggable onDragStart={(e) => onDragStart(e, { type: "label", labelId: l.id })} className="px-3 py-2 rounded-xl bg-slate-50 border text-sm border-slate-200 hover:bg-slate-100 cursor-grab active:cursor-grabbing">
+                  {l.text} <span className="text-xs text-slate-400">({l.poolId.includes("cup") ? "cup" : "plate"} label)</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
 
-  const box = el("div",{class:"slot",
-    ondragover:(e)=>e.preventDefault(),
-    ondrop:(e)=>{
-      const pld = dataPayload(e); if(!pld) return;
-      if(pld.type==="labelChip" && pld.target==="plate"){ attachLabelChipToPlate(pld.chipId, p.id); return; }
-      if(pld.type==="cup"){ onCupPoured(pld.cupId, p.id); return; }
-      if(pld.type==="mm"){ onMMDropped(p.id, pld.mmColorId); return; }
-    }
-  });
-  box.append(head,labelLine,attachedWrap,state,vis,foot);
-  return box;
-}
-function buildBoards(){
-  const cupsWrap = $("#cups"); cupsWrap.innerHTML="";
-  cups.forEach(c=> cupsWrap.append(cupCard(c)));
-  const platesWrap = $("#plates"); platesWrap.innerHTML="";
-  plates.forEach(p=> platesWrap.append(plateCard(p)));
-}
+      function CupBoard({ cups, onLabelDrop, onCupDrop, onCupDragStart, stirCup, labelText }) {
+        return (
+          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <h3 className="font-semibold mb-3">Cups</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {cups.map((c) => (
+                <div key={c.id} className="relative">
+                  <div className="rounded-2xl p-3 border border-slate-200 bg-slate-50" onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleCupDropComposite(e, c.id, onLabelDrop, onCupDrop)}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-slate-500">{c.id}</span>
+                      <div draggable onDragStart={(e) => onCupDragStart(e, c.id)} className="text-xs px-2 py-1 rounded-lg bg-slate-200 border border-slate-300 cursor-grab active:cursor-grabbing" title="Drag this cup onto a matching plate to pour">Drag to pour</div>
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-sm font-medium">Label: <span className="font-normal">{labelText(c.labelId)}</span></div>
+                      <div className="text-sm">Water: <span className="font-semibold">{c.water.toFixed(2)} cup</span></div>
+                      <div className="text-sm">Sugar: <span className="font-semibold">{c.sugar} tsp</span> {c.sugar > 0 && (<span className={\`ml-1 text-xs px-1.5 py-0.5 rounded \${c.dissolved ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}\`}>{c.dissolved ? "dissolved" : "undissolved"}</span>)}</div>
+                    </div>
+                    <div className="mt-3 flex gap-2 text-xs">
+                      <span className="px-2 py-1 rounded-lg bg-sky-50 border border-sky-200">Drop: water / sugar / label</span>
+                      <button onClick={() => stirCup(c.id)} className="ml-auto px-2 py-1 rounded-lg bg-slate-800 text-white hover:bg-slate-700">Stir</button>
+                    </div>
+                    <div className="mt-3 h-28 rounded-xl border border-slate-200 bg-white overflow-hidden grid place-items-center">
+                      <CupVisual water={c.water} sugar={c.sugar} dissolved={c.dissolved} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
 
-/* ----------------------------- Mutations ----------------------------- */
-function setCup(id, patch){ cups = cups.map(c=> c.id===id?{...c,...patch}:c); buildEverything(); }
-function setPlate(id, patch){ plates = plates.map(p=> p.id===id?{...p,...patch}:p); buildEverything(); }
-function attachLabelChipToCup(chipId, cupId){
-  const chip = labelChips.find(c=>c.chipId===chipId); if(!chip) return;
-  // detach old location
-  if(chip.location.type==="cup"){
-    const cupPrev = cups.find(x=>x.id===chip.location.id);
-    if(cupPrev && cupPrev.labelId===chip.labelId) cupPrev.labelId=null;
-  }
-  chip.location={type:"cup", id:cupId};
-  const cup = cups.find(c=>c.id===cupId); if(cup) cup.labelId = chip.labelId;
-  buildEverything();
-}
-function attachLabelChipToPlate(chipId, plateId){
-  const chip = labelChips.find(c=>c.chipId===chipId); if(!chip) return;
-  if(chip.location.type==="plate"){
-    const plPrev = plates.find(x=>x.id===chip.location.id);
-    if(plPrev && plPrev.labelId===chip.labelId) plPrev.labelId=null;
-  }
-  chip.location={type:"plate", id:plateId};
-  const pl = plates.find(p=>p.id===plateId); if(pl) pl.labelId = chip.labelId;
-  buildEverything();
-}
-function stirCup(cupId){
-  const c = cups.find(x=>x.id===cupId);
-  if(!c) return;
-  if(c.water<=0) return toast("Add water first (¼ cup).");
-  if(c.sugar<=0) return toast("No sugar to dissolve in this cup.");
-  toast("Stirring… dissolving sugar");
-  setTimeout(()=>{
-    setCup(cupId,{dissolved:true});
-    toast("Sugar dissolved!");
-  }, Math.max(600, 800 + c.sugar*300));
-}
-function onCupPoured(cupId, plateId){
-  const cup = cups.find(c=>c.id===cupId); const plate = plates.find(p=>p.id===plateId);
-  if(!cup || !plate) return;
-  if(!cup.labelId) return toast("Label the cup before pouring.");
-  if(!plate.labelId) return toast("Label the plate before pouring.");
-  if(plate.labelId !== cup.labelId) return toast("Pour into the matching labeled plate.");
-  if(cup.water<=0) return toast("This cup is empty — add water.");
-  if(cup.sugar>0 && !cup.dissolved) return toast("Stir until sugar dissolves before pouring.");
+      function handleCupDropComposite(e, cupId, onLabelDrop, onCupDrop) {
+        const p = (() => { try { return JSON.parse(e.dataTransfer.getData("application/json")); } catch { return null; } })();
+        if (!p) return;
+        if (p.type === "label") return onLabelDrop(cupId, e);
+        return onCupDrop(cupId, e);
+      }
 
-  setPlate(plateId,{
-    solutionWater: +(plate.solutionWater + cup.water).toFixed(2),
-    solutionSugar: plate.solutionSugar + cup.sugar
-  });
-  setCup(cupId,{water:0,sugar:0,dissolved:false});
-  toast("Poured into plate.");
-}
-function onMMDropped(plateId, colorId){
-  const plate = plates.find(p=>p.id===plateId); if(!plate) return;
-  if(plate.solutionWater<=0) return toast("Pour the solution into this plate first.");
-  setPlate(plateId,{ mmColorId:colorId, running:true, simTime:0 });
-}
-function resetPlate(id){ setPlate(id,{mmColorId:null, simTime:0, running:false}); }
-function resetAll(){
-  cups = Array.from({length:3},(_,i)=>({id:`cup-${i+1}`,labelId:null,water:0,sugar:0,dissolved:false}));
-  plates = Array.from({length:3},(_,i)=>({id:`plate-${i+1}`,labelId:null,solutionWater:0,solutionSugar:0,mmColorId:null,simTime:0,running:false}));
-  labelChips.forEach(ch=> ch.location={type:"tray"});
-  speed = 10; $("#speed").value = "10"; $("#speedLabel").textContent = "10×";
-  buildEverything();
-  toast("Reset the lab.");
-}
+      function CupVisual({ water, sugar, dissolved }) {
+        const waterPct = Math.min(1, water / 0.25);
+        return (
+          <div className="w-[90%] h-[90%] border border-slate-300 rounded-xl relative overflow-hidden bg-slate-50">
+            <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: \`\${waterPct * 100}%\`, background: \`linear-gradient(to top, rgba(56,189,248,0.35), rgba(56,189,248,0.2))\` }} />
+            {sugar > 0 && (
+              <div className="absolute bottom-1 left-1 text-[10px] px-1 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300">
+                {dissolved ? "Sugar dissolved" : "Sugar crystals"}
+              </div>
+            )}
+          </div>
+        );
+      }
 
-/* ----------------------------- Visuals ----------------------------- */
-function drawCupVis(root, c){
-  root.innerHTML="";
-  const box = el("div",{style:{width:"90%",height:"90%",border:"1px solid #cbd5e1",borderRadius:"12px",position:"relative",overflow:"hidden",background:"#f8fafc"}});
-  const water = el("div",{style:{position:"absolute",left:"0",right:"0",bottom:"0",height:(Math.min(1,c.water/0.25)*100)+"%",background:"linear-gradient(to top, rgba(56,189,248,0.35), rgba(56,189,248,0.2))",transition:"height .2s"}});
-  box.append(water);
-  if(c.sugar>0){
-    box.append(el("div",{style:{position:"absolute",left:"6px",bottom:"6px",fontSize:"10px",background:"#fde68a",color:"#92400e",border:"1px solid #f59e0b",borderRadius:"8px",padding:"2px 6px"}},
-      c.dissolved?"Sugar dissolved":"Sugar crystals"));
-  }
-  root.append(box);
-}
-function drawPlateVis(root, p){
-  root.innerHTML="";
-  const wrap = el("div",{style:{width:"232px",height:"232px",display:"grid",placeItems:"center"}});
-  const canvas = el("canvas",{width:232,height:232,style:{border:"1px solid #cbd5e1",borderRadius:"12px",background:"#fff"}});
-  wrap.append(canvas); root.append(wrap);
-  const ctx = canvas.getContext("2d");
-  const cx = canvas.width/2, cy = canvas.height/2, radius = canvas.width/2 - 10;
+      function PlateBoard({ plates, onLabelDrop, onCupDropOnPlate, onMMDrop, resetPlateSim, labelText, MM_COLORS }) {
+        return (
+          <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <h3 className="font-semibold mb-3">Plates</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {plates.map((p) => (
+                <div key={p.id} className="relative">
+                  <div className="rounded-2xl p-3 border border-slate-200 bg-slate-50" onDragOver={(e) => e.preventDefault()} onDrop={(e) => handlePlateDropComposite(e, p.id, onLabelDrop, onCupDropOnPlate, onMMDrop)}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-slate-500">{p.id}</span>
+                      <div className="text-xs px-2 py-1 rounded-lg bg-slate-200 border border-slate-300">Drop: label / CUP / M&amp;M</div>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                      <div>Label: <span className="font-medium">{labelText(p.labelId)}</span></div>
+                      <div>Solution: <span className="font-semibold">{p.solutionWater.toFixed(2)} cup</span></div>
+                      <div>Sugar: <span className="font-semibold">{p.solutionSugar} tsp</span></div>
+                      <div>M&amp;M: <span className="font-medium">{p.mmColorId ? p.mmColorId : "—"}</span></div>
+                    </div>
+                    <div className="mt-3 h-64 rounded-xl border border-slate-200 bg-white overflow-hidden grid place-items-center">
+                      <PlateVisual plate={p} MM_COLORS={MM_COLORS} />
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 text-xs">
+                      <button onClick={() => resetPlateSim(p.id)} className="ml-auto px-2 py-1 rounded-lg bg-slate-800 text-white hover:bg-slate-700">Reset plate</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
 
-  // background water tint
-  if(p.solutionWater>0){
-    ctx.fillStyle = "rgba(56,189,248,0.15)";
-    ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.fill();
-  }
-  // M&M center dot
-  ctx.fillStyle = p.mmColorId ? mmColorToCss(p.mmColorId) : "#e2e8f0";
-  ctx.beginPath(); ctx.arc(cx,cy,10,0,Math.PI*2); ctx.fill();
+      function handlePlateDropComposite(e, plateId, onLabelDrop, onCupDropOnPlate, onMMDrop) {
+        const p = (() => { try { return JSON.parse(e.dataTransfer.getData("application/json")); } catch { return null; } })();
+        if (!p) return;
+        if (p.type === "label") return onLabelDrop(plateId, e);
+        if (p.type === "cup") return onCupDropOnPlate(plateId, e);
+        if (p.type === "mm") return onMMDrop(plateId, e);
+      }
 
-  // diffusion gradient
-  if(p.mmColorId){
-    const sugar = p.solutionSugar;
-    const k = 8;
-    const r = Math.min(radius, k*Math.sqrt(Math.max(0,p.simTime))/(1+0.6*sugar));
-    const softness = Math.max(6, 22 - sugar*6);
+      function PlateVisual({ plate, MM_COLORS }) {
+        const size = 220;
+        const radius = size / 2 - 6;
+        const sugar = plate.solutionSugar;
+        const k = 8;
+        const r = Math.min(radius, k * Math.sqrt(Math.max(0, plate.simTime)) / (1 + 0.6 * sugar));
+        const softness = Math.max(6, 22 - sugar * 6);
+        const color = MM_COLORS.find((c) => c.id === plate.mmColorId)?.rgb || [120, 120, 120];
+        const waterTint = plate.solutionWater > 0 ? 0.15 : 0;
+        const gradientId = \`\${plate.id}-grad\`;
+        return (
+          <svg width={size} height={size} className="drop-shadow-sm">
+            <defs>
+              <radialGradient id={gradientId} cx="50%" cy="50%" r="50%">
+                <stop offset={\`\${Math.max(0, ((r - softness) / radius) * 100)}%\`} stopColor={\`rgba(\${color[0]}, \${color[1]}, \${color[2]}, 0.85)\`} />
+                <stop offset={\`\${Math.max(0, (r / radius) * 100)}%\`} stopColor={\`rgba(\${color[0]}, \${color[1]}, \${color[2]}, 0.5)\`} />
+                <stop offset={\`\${Math.min(100, ((r + softness) / radius) * 100)}%\`} stopColor={\`rgba(\${color[0]}, \${color[1]}, \${color[2]}, 0.0)\`} />
+              </radialGradient>
+            </defs>
+            <circle cx={size / 2} cy={size / 2} r={radius} fill={\`rgba(56,189,248,\${waterTint})\`} stroke="#cbd5e1" strokeWidth={3} />
+            {plate.mmColorId && <circle cx={size / 2} cy={size / 2} r={radius} fill={\`url(#\${gradientId})\`} />}
+            <circle cx={size / 2} cy={size / 2} r={10} fill={plate.mmColorId ? \`rgb(\${color[0]}, \${color[1]}, \${color[2]})\` : "#e2e8f0"} stroke="#334155" strokeWidth={plate.mmColorId ? 1 : 0} />
+            <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#94a3b8" strokeDasharray="4 4" />
+          </svg>
+        );
+      }
 
-    const grad = ctx.createRadialGradient(cx,cy,Math.max(0,r-softness), cx,cy,Math.max(0,r+softness));
-    const [R,G,B] = MM.find(m=>m.id===p.mmColorId).rgb;
-    grad.addColorStop(0, `rgba(${R},${G},${B},0.85)`);
-    grad.addColorStop(Math.max(0,(r/(r+softness))), `rgba(${R},${G},${B},0.5)`);
-    grad.addColorStop(1, `rgba(${R},${G},${B},0.0)`);
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.arc(cx,cy,Math.max(0,r+softness),0,Math.PI*2); ctx.fill();
+      function NotesPanel({ notes, setNotes }) {
+        return (
+          <div className="p-4 mt-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+            <h3 className="font-semibold">Student Notebook</h3>
+            <div className="mt-3 space-y-3">
+              <div>
+                <label className="text-sm text-slate-600">Prediction (before adding M&amp;Ms)</label>
+                <textarea value={notes.predictions} onChange={(e) => setNotes((n) => ({ ...n, predictions: e.target.value }))} className="mt-1 w-full h-20 p-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none" placeholder="I predict the dye will…" />
+              </div>
+              <div>
+                <label className="text-sm text-slate-600">Observations</label>
+                <textarea value={notes.observations} onChange={(e) => setNotes((n) => ({ ...n, observations: e.target.value }))} className="mt-1 w-full h-20 p-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none" placeholder="On the no-sugar plate, I noticed…" />
+              </div>
+              <div>
+                <label className="text-sm text-slate-600">Explanation (CER)</label>
+                <textarea value={notes.explanations} onChange={(e) => setNotes((n) => ({ ...n, explanations: e.target.value }))} className="mt-1 w-full h-24 p-2 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none" placeholder="Because particles move from high to low concentration…" />
+              </div>
+            </div>
+          </div>
+        );
+      }
 
-    // dashed ring
-    ctx.strokeStyle="#94a3b8"; ctx.setLineDash([4,4]); ctx.lineWidth=1;
-    ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.stroke();
-  }
-}
-function mmColorToCss(id){ const m=MM.find(x=>x.id===id); return `rgb(${m.rgb[0]},${m.rgb[1]},${m.rgb[2]})`; }
-
-/* ----------------------------- Simulation Loop ----------------------------- */
-setInterval(()=>{
-  let changed = false;
-  plates = plates.map(pl=>{
-    if(!pl.running) return pl;
-    const next = {...pl, simTime: pl.simTime + 0.1*speed};
-    changed = true; return next;
-  });
-  if(changed){ // redraw plates only
-    buildSteps();
-    const platesWrap = $("#plates"); platesWrap.innerHTML="";
-    plates.forEach(p=> platesWrap.append(plateCard(p)));
-  }
-},100);
-
-/* ----------------------------- Init ----------------------------- */
-document.addEventListener("dragstart", e=>{
-  // prevent text selection ghost image on some browsers
-  if(e.target.classList && e.target.classList.contains("pill")) e.target.style.opacity="0.8";
-});
-document.addEventListener("dragend", e=>{
-  if(e.target.classList && e.target.classList.contains("pill")) e.target.style.opacity="";
-});
-$("#speed").dispatchEvent(new Event("input"));
-
-buildEverything();
-</script>
-</body>
+      ReactDOM.createRoot(document.getElementById('root')).render(<SugaryMAndMsLab />);
+    </script>
+  </body>
 </html>
