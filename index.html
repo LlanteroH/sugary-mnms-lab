@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Sugary M&Ms — Interactive Lab (Standalone)</title>
+  <style>
+    :root{--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--card:#fff;--bg0:#f8fafc;--bg1:#f1f5f9;--green:#10b981;--green-50:#ecfdf5;--amber:#f59e0b;}
+    html,body{height:100%} body{margin:0;background:linear-gradient(var(--bg0),var(--bg1));font:14px/1.4 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--ink)}
+    .container{max-width:1200px;margin:0 auto;padding:16px}
+    h1{font-size:28px;line-height:1.2;margin:0 0 8px 0;font-weight:800}
+    .row{display:grid;gap:16px}
+    @media(min-width:980px){.row-12{grid-template-columns:3fr 9fr}.row-2{grid-template-columns:1fr 1fr} .row-3{grid-template-columns:1fr 1fr 1fr}}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .btn{background:#0f172a;color:#fff;border:none;border-radius:12px;padding:8px 12px;cursor:pointer}
+    .pill{display:inline-block;border:1px solid var(--line);background:#f1f5f9;border-radius:12px;padding:6px 10px}
+    .tiny{font-size:12px;color:var(--muted)}
+    .list{display:grid;gap:8px}
+    .flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .grid3{display:grid;gap:12px}
+    @media(min-width:720px){.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}}
+    .notice{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#0f172a;color:#fff;padding:8px 12px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .circle{width:32px;height:32px;border-radius:999px;border:1px solid #cbd5e1;display:inline-block;box-shadow:0 1px 2px rgba(0,0,0,.05);cursor:grab}
+    .board{background:#f8fafc}
+    .slot{border:1px dashed var(--line);border-radius:12px;padding:8px}
+    .title{font-weight:600;margin:0 0 6px 0}
+    .steps li{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;gap:8px;align-items:start}
+    .steps .n{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;font-size:12px;font-weight:700;background:#e2e8f0;color:#334155;margin-top:2px}
+    .steps .ok{background:var(--green);color:#fff}
+    .steps .done{background:var(--green-50);border-color:#34d399}
+    textarea{width:100%;min-height:84px;padding:8px;border-radius:12px;border:1px solid var(--line);background:#f8fafc;resize:vertical}
+    .badge{font-size:11px;padding:2px 6px;border-radius:8px}
+    .badge-amber{background:#fde68a;color:#92400e;border:1px solid var(--amber)}
+    .cupVis,.plateVis{display:grid;place-items:center;border:1px solid var(--line);border-radius:12px;background:#fff}
+    .cupVis{height:112px} .plateVis{height:256px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="row" style="grid-template-columns:1fr auto;align-items:flex-start;gap:12px">
+      <div>
+        <h1>Sugary M&Ms — Interactive Lab</h1>
+        <p class="tiny">Drag and drop to follow the procedure, then observe how dye from an M&amp;M spreads in different sugar concentrations.</p>
+      </div>
+      <div class="flex">
+        <label class="tiny">Time speed</label>
+        <input id="speed" type="range" min="1" max="30" step="1" value="10" style="width:160px">
+        <span id="speedLabel" class="tiny" style="width:28px;text-align:right">10×</span>
+        <button id="resetAll" class="btn">Reset</button>
+      </div>
+    </header>
+
+    <ol id="steps" class="steps grid3" style="margin:16px 0"></ol>
+
+    <section class="row row-12" style="margin-top:16px">
+      <div>
+        <div class="card">
+          <h3 class="title">Tools</h3>
+          <p class="tiny">Drag these onto cups/plates.</p>
+          <div class="flex">
+            <div class="pill" draggable="true" id="tool-water" title="Drag to add ¼ cup water to a cup">Water pitcher (¼ cup)</div>
+            <div class="pill" draggable="true" id="tool-sugar" title="Drag to add 1 tsp sugar to a cup">Sugar spoon (1 tsp)</div>
+          </div>
+          <div style="margin-top:10px">
+            <h4 class="tiny" style="font-size:13px;margin:0 0 6px 0">M&Ms</h4>
+            <div id="mmTray" class="flex"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3 class="title">Labels</h3>
+          <p class="tiny">Drag onto cups and plates.</p>
+          <div id="labelTray" class="list"></div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <h3 class="title">Student Notebook</h3>
+          <div class="list">
+            <div>
+              <label class="tiny">Prediction (before adding M&Ms)</label>
+              <textarea id="pred"></textarea>
+            </div>
+            <div>
+              <label class="tiny">Observations</label>
+              <textarea id="obs"></textarea>
+            </div>
+            <div>
+              <label class="tiny">Explanation (CER)</label>
+              <textarea id="exp"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row row-2">
+        <div class="card board">
+          <h3 class="title">Cups</h3>
+          <div id="cups" class="grid3"></div>
+        </div>
+        <div class="card board">
+          <h3 class="title">Plates</h3>
+          <div id="plates" class="grid3"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="toast" class="notice" style="display:none"></div>
+
+  <script>
+    // ------- State -------
+    const LABELS = [
+      { id: "no", text: "No sugar", sugarTeaspoons: 0 },
+      { id: "1tsp", text: "1 tsp sugar", sugarTeaspoons: 1 },
+      { id: "3tsp", text: "3 tsp sugar", sugarTeaspoons: 3 },
+    ];
+    const MM = [
+      { id:"red", rgb:[220,38,38] }, { id:"blue", rgb:[37,99,235] }, { id:"green", rgb:[16,185,129] },
+      { id:"yellow", rgb:[234,179,8] }, { id:"orange", rgb:[249,115,22] }, { id:"brown", rgb:[87,55,40] },
+    ];
+
+    let cups = Array.from({length:3}, (_,i)=>({ id:`cup-${i+1}`, labelId:null, water:0, sugar:0, dissolved:false }));
+    let plates = Array.from({length:3}, (_,i)=>({ id:`plate-${i+1}`, labelId:null, solutionWater:0, solutionSugar:0, mmColorId:null, simTime:0, running:false }));
+    let speed = 10;
+
+    const el = (tag, props={}, ...children)=>{
+      const d = document.createElement(tag);
+      for(const [k,v] of Object.entries(props)){
+        if(k==="style" && typeof v==="object"){ Object.assign(d.style, v); }
+        else if(k.startsWith("on") && typeof v==="function"){ d.addEventListener(k.substring(2).toLowerCase(), v); }
+        else if(k==="dataset"){ Object.assign(d.dataset, v); }
+        else if(v!==false && v!=null){ d.setAttribute(k, v===true ? "" : v); }
+      }
+      for(const c of children){ d.append(c.nodeType ? c : document.createTextNode(c)); }
+      return d;
+    };
+
+    function toast(msg){
+      const t = document.getElementById("toast"); t.textContent = msg; t.style.display = "block";
+      clearTimeout(toast._t); toast._t = setTimeout(()=> t.style.display = "none", 2500);
+    }
+
+    function dataPayload(e){ try { return JSON.parse(e.dataTransfer.getData("application/json")); } catch { return null; } }
+    function onDragStart(e, payload){ e.dataTransfer.setData("application/json", JSON.stringify(payload)); }
+
+    // ------- Build UI -------
+    function buildTools(){
+      // Labels
+      const tray = document.getElementById("labelTray"); tray.innerHTML="";
+      LABELS.forEach(l => {
+        const badgeCup = el("div", { class:"pill", draggable:true });
+        badgeCup.textContent = l.text + " "; badgeCup.append(el("span",{class:"tiny"}, "(cup label)"));
+        badgeCup.addEventListener("dragstart", e=> onDragStart(e, {type:"label", labelId:l.id}));
+        tray.append(badgeCup);
+        const badgePlate = el("div", { class:"pill", draggable:true });
+        badgePlate.textContent = l.text + " "; badgePlate.append(el("span",{class:"tiny"}, "(plate label)"));
+        badgePlate.addEventListener("dragstart", e=> onDragStart(e, {type:"label", labelId:l.id}));
+        tray.append(badgePlate);
+      });
+
+      // M&Ms
+      const mmTray = document.getElementById("mmTray"); mmTray.innerHTML="";
+      MM.forEach(m => {
+        const dot = el("span", {class:"circle", draggable:true, style:{background:`rgb(${m.rgb[0]},${m.rgb[1]},${m.rgb[2]})`}});
+        dot.addEventListener("dragstart", e=> onDragStart(e, {type:"mm", mmColorId:m.id}));
+        mmTray.append(dot);
+      });
+
+      // Tools drag
+      document.getElementById("tool-water").addEventListener("dragstart", e=> onDragStart(e, {type:"water"}));
+      document.getElementById("tool-sugar").addEventListener("dragstart", e=> onDragStart(e, {type:"sugar", amount:1}));
+    }
+
+    function cupCard(c){
+      const card = el("div", {class:"card board"});
+      const head = el("div", {class:"flex", style:{justifyContent:"space-between"}},
+        el("span", {class:"tiny"}, c.id),
+        el("div", {class:"pill", draggable:true, title:"Drag this cup onto a matching plate to pour",
+          ondragstart: (e)=> onDragStart(e, {type:"cup", cupId:c.id})
+        }, "Drag to pour")
+      );
+      const body = el("div", {},
+        el("div", {}, el("strong", {}, "Label:")," ", el("span", {}, labelText(c.labelId))),
+        el("div", {}, el("strong", {}, "Water:")," ", el("span", {}, c.water.toFixed(2)+" cup")),
+        el("div", {}, el("strong", {}, "Sugar:")," ", el("span", {}, c.sugar+" tsp"),
+          " ", c.sugar>0 ? el("span",{class:"badge badge-amber"}, c.dissolved?"dissolved":"undissolved") : "")
+      );
+      const foot = el("div", {class:"flex"},
+        el("span", {class:"pill tiny"}, "Drop: water / sugar / label"),
+        el("button", {class:"btn", onclick:()=> stirCup(c.id)}, "Stir")
+      );
+      const vis = el("div", {class:"cupVis"}); drawCupVis(vis, c);
+
+      const box = el("div", {class:"slot", ondragover:(e)=>e.preventDefault(), ondrop:(e)=>handleCupDropComposite(e,c.id)});
+      box.append(head, body, foot, vis);
+
+      card.append(box);
+      return card;
+    }
+
+    function plateCard(p){
+      const card = el("div", {class:"card board"});
+      const head = el("div", {class:"flex", style:{justifyContent:"space-between"}},
+        el("span", {class:"tiny"}, p.id),
+        el("div", {class:"pill tiny"}, "Drop: label / CUP / M&M")
+      );
+      const grid = el("div", {class:"row", style:{gridTemplateColumns:"1fr 1fr", gap:"8px"}},
+        el("div", {}, "Label: ", el("strong", {}, labelText(p.labelId))),
+        el("div", {}, "Solution: ", el("strong", {}, p.solutionWater.toFixed(2)+" cup")),
+        el("div", {}, "Sugar: ", el("strong", {}, p.solutionSugar+" tsp")),
+        el("div", {}, "M&M: ", el("strong", {}, p.mmColorId || "—")),
+      );
+      const vis = el("div", {class:"plateVis"}); buildPlateCanvas(vis, p);
+      const btn = el("div", {style:{display:"flex",justifyContent:"flex-end",marginTop:"8px"}},
+        el("button", {class:"btn", onclick:()=> resetPlateSim(p.id)}, "Reset plate")
+      );
+
+      const box = el("div", {class:"slot", ondragover:(e)=>e.preventDefault(), ondrop:(e)=>handlePlateDropComposite(e,p.id)});
+      box.append(head, grid, vis, btn);
+
+      card.append(box);
+      return card;
+    }
+
+    function buildBoards(){
+      const cupsWrap = document.getElementById("cups"); cupsWrap.innerHTML="";
+      cups.forEach(c=> cupsWrap.append(cupCard(c)));
+      const platesWrap = document.getElementById("plates"); platesWrap.innerHTML="";
+      plates.forEach(p=> platesWrap.append(plateCard(p)));
+      buildSteps();
+    }
+
+    function labelText(id){ const l = LABELS.find(x=>x.id===id); return l ? l.text : "—"; }
+
+    // ------- Visuals -------
+    function drawCupVis(container, c){
+      container.innerHTML="";
+      const box = el("div", {style:{width:"90%",height:"90%",border:"1px solid #cbd5e1",borderRadius:"12px",position:"relative",overflow:"hidden",background:"#f1f5f9"}});
+      const pct = Math.min(1, c.water/0.25);
+      const water = el("div", {style:{position:"absolute",left:0,right:0,bottom:0,height:(pct*100)+"%",background:"linear-gradient(to top, rgba(56,189,248,.35), rgba(56,189,248,.2))"}});
+      box.append(water);
+      if(c.sugar>0){
+        box.append(el("div",{class:"badge badge-amber",style:{position:"absolute",left:"6px",bottom:"6px"}}, c.dissolved?"Sugar dissolved":"Sugar crystals"));
+      }
+      container.append(box);
+    }
+
+    function buildPlateCanvas(container, p){
+      container.innerHTML="";
+      const size=220, radius=size/2-6;
+      const cvs = el("canvas", {width:size, height:size, style:{filter:"drop-shadow(0 1px 1px rgba(0,0,0,.06))"}});
+      container.append(cvs);
+      cvs._plateId = p.id;
+      drawPlate(cvs, p);
+    }
+
+    function drawPlate(cvs, p){
+      const ctx = cvs.getContext("2d");
+      const size=cvs.width, radius=size/2-6, cx=size/2, cy=size/2;
+      ctx.clearRect(0,0,size,size);
+
+      // plate background with water tint
+      const waterTint = p.solutionWater>0 ? 0.15 : 0;
+      ctx.beginPath();
+      ctx.arc(cx,cy,radius,0,Math.PI*2);
+      ctx.fillStyle = `rgba(56,189,248,${waterTint})`;
+      ctx.fill();
+      ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=3; ctx.stroke();
+
+      // diffusion
+      if(p.mmColorId){
+        const rgb = ({red:[220,38,38],blue:[37,99,235],green:[16,185,129],yellow:[234,179,8],orange:[249,115,22],brown:[87,55,40]})[p.mmColorId] || [120,120,120];
+        const sugar = p.solutionSugar;
+        const k = 8, softness = Math.max(6, 22 - sugar*6);
+        const r = Math.min(radius, k*Math.sqrt(Math.max(0,p.simTime))/(1+0.6*sugar));
+
+        // radial gradient with soft edge
+        const grad = ctx.createRadialGradient(cx,cy,Math.max(0,r-softness), cx,cy,Math.max(0,r+softness));
+        grad.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.85)`);
+        grad.addColorStop(r/(r+softness) || 0.001, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.5)`);
+        grad.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.0)`);
+        ctx.fillStyle=grad;
+        ctx.beginPath(); ctx.arc(cx,cy,Math.max(r,1),0,Math.PI*2); ctx.fill();
+      }
+
+      // center candy
+      ctx.beginPath();
+      ctx.arc(cx,cy,10,0,Math.PI*2);
+      if(p.mmColorId){
+        const rgb = ({red:[220,38,38],blue:[37,99,235],green:[16,185,129],yellow:[234,179,8],orange:[249,115,22],brown:[87,55,40]})[p.mmColorId] || [120,120,120];
+        ctx.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`; ctx.strokeStyle="#334155"; ctx.lineWidth=1;
+      }else{
+        ctx.fillStyle="#e2e8f0"; ctx.lineWidth=0;
+      }
+      ctx.fill(); if(p.mmColorId) ctx.stroke();
+
+      // outer dash ring
+      ctx.save();
+      ctx.setLineDash([4,4]); ctx.strokeStyle="#94a3b8"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+
+    // ------- Interactions -------
+    function handleCupDropComposite(e, cupId){
+      e.preventDefault();
+      const p = dataPayload(e);
+      if(!p) return;
+      if(p.type==="label"){ setCup(cupId, {labelId:p.labelId}); return; }
+      if(p.type==="water"){ const c = cups.find(x=>x.id===cupId); const w = Math.min(0.25, +(c.water+0.25).toFixed(2)); setCup(cupId, {water:w}); return; }
+      if(p.type==="sugar"){ const c = cups.find(x=>x.id===cupId); setCup(cupId, {sugar:c.sugar + p.amount, dissolved:false}); return; }
+    }
+
+    function handlePlateDropComposite(e, plateId){
+      e.preventDefault();
+      const p = dataPayload(e);
+      if(!p) return;
+      if(p.type==="label"){ setPlate(plateId, {labelId:p.labelId}); return; }
+      if(p.type==="cup"){
+        const cup = cups.find(c=>c.id===p.cupId); if(!cup) return;
+        if(!cup.labelId) return toast("Label the cup before pouring.");
+        const plate = plates.find(pl=>pl.id===plateId);
+        if(!plate.labelId) return toast("Label the plate before pouring.");
+        if(plate.labelId!==cup.labelId) return toast("Pour into the matching labeled plate.");
+        if(cup.water<=0) return toast("This cup is empty — add water.");
+        if(cup.sugar>0 && !cup.dissolved) return toast("Stir until sugar dissolves before pouring.");
+        setPlate(plateId, {solutionWater:+(plate.solutionWater+cup.water).toFixed(2), solutionSugar:plate.solutionSugar+cup.sugar});
+        setCup(cup.id, {water:0,sugar:0,dissolved:false});
+        toast("Poured into plate.");
+        return;
+      }
+      if(p.type==="mm"){
+        const plate = plates.find(pl=>pl.id===plateId);
+        if(plate.solutionWater<=0) return toast("Pour the solution into this plate first.");
+        setPlate(plateId, {mmColorId:p.mmColorId, running:true, simTime:0});
+        return;
+      }
+    }
+
+    function stirCup(cupId){
+      const c = cups.find(x=>x.id===cupId);
+      if(c.water<=0) return toast("Add water first (¼ cup).");
+      if(c.sugar<=0) return toast("No sugar to dissolve in this cup.");
+      toast("Stirring… dissolving sugar");
+      setTimeout(()=>{ setCup(cupId, {dissolved:true}); toast("Sugar dissolved!"); }, Math.max(600,800 + c.sugar*300));
+    }
+
+    // ------- State updates & re-render -------
+    function setCup(id, patch){
+      cups = cups.map(c=> c.id===id ? {...c, ...patch} : c);
+      buildBoards();
+    }
+    function setPlate(id, patch){
+      plates = plates.map(p=> p.id===id ? {...p, ...patch} : p);
+      buildBoards();
+    }
+
+    function buildSteps(){
+      const steps = document.getElementById("steps"); steps.innerHTML="";
+      const labelsDone = cups.every(c=>c.labelId) && plates.every(p=>p.labelId);
+      const waterDone = cups.every(c=>c.water>=0.25);
+      const sugarDone = LABELS.every(l=>{ const cup = cups.find(c=>c.labelId===l.id); if(!cup) return false; return cup.sugar===l.sugarTeaspoons; });
+      const dissolvedDone = cups.every(c=> c.sugar>0 ? c.dissolved : true);
+      const pouredDone = plates.every(p=> p.solutionWater>=0.25);
+      const mmPlaced = plates.every(p=> p.mmColorId);
+      const arr=[
+        {k:"labelsDone", t:"Label 3 cups + 3 plates (No sugar, 1 tsp sugar, 3 tsp sugar)", v:labelsDone},
+        {k:"waterDone", t:"Add ¼ cup water to each cup", v:waterDone},
+        {k:"sugarDone", t:"Add sugar to the 1‑tsp and 3‑tsp cups", v:sugarDone},
+        {k:"dissolvedDone", t:"Stir until sugar dissolves", v:dissolvedDone},
+        {k:"pouredDone", t:"Pour each cup into its matching plate", v:pouredDone},
+        {k:"mmPlaced", t:"Add an M&M to each plate; watch and record observations", v:mmPlaced},
+      ];
+      arr.forEach((s,i)=>{
+        const li = el("li", {class:""+(s.v?"done":"")},
+          el("span", {class:"n "+(s.v?"ok":"")}, String(i+1)), el("span", {}, s.t)
+        );
+        steps.append(li);
+      });
+    }
+
+    // ------- Simulation loop -------
+    setInterval(()=>{
+      plates.forEach(p=>{
+        if(p.running){ p.simTime += 0.1 * speed; }
+        const cvs = document.querySelector('canvas[width="220"][height="220"][_plateId="'+p.id+'"]');
+        if(cvs){ drawPlate(cvs, p); }
+      });
+    }, 100);
+
+    // ------- Controls -------
+    document.getElementById("speed").addEventListener("input", (e)=>{
+      speed = parseInt(e.target.value||"10",10); document.getElementById("speedLabel").textContent = speed+"×";
+    });
+    document.getElementById("resetAll").addEventListener("click", ()=>{
+      cups = Array.from({length:3}, (_,i)=>({ id:`cup-${i+1}`, labelId:null, water:0, sugar:0, dissolved:false }));
+      plates = Array.from({length:3}, (_,i)=>({ id:`plate-${i+1}`, labelId:null, solutionWater:0, solutionSugar:0, mmColorId:null, simTime:0, running:false }));
+      buildBoards(); toast("Reset the lab.");
+      document.getElementById("pred").value=""; document.getElementById("obs").value=""; document.getElementById("exp").value="";
+      document.getElementById("speed").value="10"; document.getElementById("speedLabel").textContent="10×"; speed=10;
+    });
+
+    // ------- Initialize -------
+    buildTools();
+    buildBoards();
+  </script>
+</body>
+</html>
